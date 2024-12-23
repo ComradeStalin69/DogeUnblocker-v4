@@ -93,6 +93,32 @@ if (selectedTheme === 'deepsea' && (bgUrl === null || bgUrl === 'none' || bgUrl 
     document.body.style.backgroundPosition = "center";
     document.body.style.backgroundRepeat = "no-repeat";
     document.body.style.backgroundSize = "cover";
+} else if (selectedTheme === 'cookie' && (bgUrl === null || bgUrl === 'none' || bgUrl === '')) {
+    var containers = document.querySelectorAll('div:not(#particles-js):not(#settingsContainer):not(#contextItem):not(#contextMenu):not(#cloak):not(.themesExcluded)');
+
+    var nav = document.querySelectorAll('nav');
+    nav.forEach(function(navElement) {
+        navElement.style.transition = '1s';
+        navElement.style.backgroundColor = 'rgba(20, 20, 20, 0.871)';
+        navElement.style.border = '1px solid rgba(39, 39, 39, 0.575)';
+        navElement.style.boxShadow = '0 0 8px rgba(255, 255, 255, 0.267)';
+        navElement.style.opacity = '100%';
+    });
+
+    var inputs = document.querySelectorAll('input');
+    inputs.forEach(function(inputElement) {
+        inputElement.style.transition = '.2s';
+        inputElement.style.backgroundColor = 'rgba(15, 15, 15, 0.89)';
+        inputElement.style.boxShadow = '0 0 1px rgba(255, 255, 255, 0.267)';
+        inputElement.style.opacity = '100%';
+    });
+
+    document.body.style.backgroundImage = "url('/assets/img/cookiebkg.png')";
+    document.body.style.backgroundAttachment = "fixed";
+    document.body.style.height = "100%";
+    document.body.style.backgroundPosition = "center";
+    document.body.style.backgroundRepeat = "no-repeat";
+    document.body.style.backgroundSize = "cover";
 }
 
 /* If no theme is selected */
