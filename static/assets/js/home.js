@@ -6,7 +6,7 @@ function loadScript(src, callback) {
     document.head.appendChild(script);
 }
 
-loadScript('/uv/uv.handler.js', function () {
+loadScript('static/uv/uv.handler.js', function () {
     loadScript('/uv/uv.bundle.js', function () {
         loadScript('/uv/uv.config.js', function () {
             console.log('Loaded assets');
