@@ -118,7 +118,7 @@ if (selectedTheme === 'deepsea' && (bgUrl === null || bgUrl === 'none' || bgUrl 
     document.body.style.height = "100%";
     document.body.style.backgroundPosition = "center";
     document.body.style.backgroundRepeat = "no-repeat";
-    document.body.style.backgroundSize = "contain";
+    document.body.style.backgroundSize = "cover";
 }
 
 /* If no theme is selected */
