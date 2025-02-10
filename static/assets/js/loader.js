@@ -1,87 +1,130 @@
-const urlBar = document.querySelector("#urlBar")
-const siteUrl = document.querySelector("#siteurl");
-const urlInput = document.querySelector("#urlInput");
-let encodedUrl = localStorage.getItem("encodedUrl");
-var selectedTheme = localStorage.getItem('selectedOption');
-var bgUrl = localStorage.getItem('bgUrl');
-siteUrl.addEventListener("load", handleLoadEvent);
-siteUrl.addEventListener("srcchange", handleSrcChangeEvent);
-document.querySelector("#urlInput").addEventListener("keypress", handleEnterKeyPress);
+let devToolsLoaded;
+let scope;
+const searchBar = document.querySelector(".input");
+const urlBar = document.querySelector('#urlBar');
+const sideBar = document.getElementById("sidebar");
+const menu = document.getElementById('menu');
+const frame = document.getElementById('siteurl');
+const selectedTheme = localStorage.getItem('selectedOption');
+const vercelCheck = localStorage.getItem('isVercel');
+var leaveConf = localStorage.getItem("leaveConfirmation");
 
-Object.defineProperty(siteUrl, 'src', {
-    set: function(value) {
-        this.setAttribute('src', value);
-        this.dispatchEvent(new Event('srcchange'));
-    }
+if (leaveConf === "enabled") {
+    window.onbeforeunload = function (e) {
+        const confirmationMessage = "Are you sure you want to leave this page?";
+        (e || window.event).returnValue = confirmationMessage;
+        return confirmationMessage;
+    };
+
+    setTimeout(() => {
+        console.log('onbeforeunload handler engaged after page load.');
+    }, 500);
+}
+
+searchBar.value = Ultraviolet.codec.xor.decode(localStorage.getItem('encodedUrl'));
+lucide.createIcons();
+
+const themeStyles = {
+  deepsea: { background: "rgb(6, 22, 35)" },
+  equinox: { backgroundImage: "url('/assets/img/topographic_splash.webp')" },
+  swamp: { background: "rgb(12, 43, 22)" },
+  starry: { background: "rgb(63, 3, 53)" },
+  magma: { background: "rgb(31, 26, 26)" },
+  sunset: { background: "rgb(29, 21, 27)" },
+  midnight: { background: "rgb(27, 27, 27)" },
+  default: { background: "rgb(6, 22, 35)" }
+};
+
+const selectedStyle = themeStyles[selectedTheme] || themeStyles.default;
+if (selectedStyle.background) {
+  searchBar.style.background = selectedStyle.background;
+}
+if (selectedStyle.backgroundImage) {
+  urlBar.style.backgroundImage = selectedStyle.backgroundImage;
+}
+
+document.getElementById('tabs').addEventListener('click', function() {
+  sideBar.style.display = sideBar.style.display === "block" ? "none" : "block";
+  if (sideBar.style.display === 'block') {
+    menu.style.display = 'none';
+  }
+});
+document.getElementById('more').addEventListener('click', function() {
+	menu.style.display = menu.style.display === "block" ? "none" : "block";
+	if (menu.style.display === 'block') {
+		sideBar.style.display = 'none';
+	}
 });
 
-urlInput.value = Ultraviolet.codec.xor.decode(encodedUrl);
-
-if (selectedTheme === 'deepsea') {
-    urlBar.style.background = "rgb(6, 22, 35)";
-} else if (selectedTheme === 'equinox') {
-    urlBar.style.backgroundImage = "url('/assets/img/topographic_splash.webp')";
-} else if (selectedTheme === 'swamp') {
-    urlBar.style.background = "rgb(12, 43, 22)";
-} else if (selectedTheme === 'ocean') {
-    urlBar.style.background = "rgb(2, 59, 57)";;
-} else if (selectedTheme === 'starry') {
-    urlBar.style.background = "rgb(63, 3, 53)";
-} else if (selectedTheme === 'magma') {
-    urlBar.style.background = "rgb(53, 1, 1)";
-} else if (selectedTheme === 'sunset') {
-    urlBar.style.background = "rgb(53, 52, 1)";
-} else if (selectedTheme === 'midnight') {
-    urlBar.style.background = "rgb(27, 27, 27)";
-} else if (selectedTheme === null) {
-    urlBar.style.background = "rgb(6, 22, 35)";
-} else {
-    urlBar.style.background = "rgb(6, 22, 35)";
+function fetchDomains() {
+	return fetch('/data/b-list.json').then(response => response.json()).then(data => data.domains).catch(error => {
+		console.error('Error fetching domains:', error);
+		return []; // ADds a promise so scope can work
+	});
 }
 
-function handleLoadEvent() {
-    const decodedPart = getUrlDecodedPart(this.contentWindow.location.href);
-    urlInput.value = decodedPart || '';
+function createDomainRegex(domains) {
+	const escapedDomains = domains.map(domain => domain.replace(/\./g, '\\.'));
+	return new RegExp(escapedDomains.join('|') + '(?=[/\\s]|$)', 'i');
 }
 
-function handleSrcChangeEvent() {
-    urlInput.value = getUrlDecodedPart(this.contentWindow.location.href) || '';
+searchBar.addEventListener("keydown", function(event) {
+	if (event.key === 'Enter') {
+		var inputUrl = searchBar.value.trim();
+		searchBar.blur();
+		fetchDomains().then(domains => {
+			const domainRegex = createDomainRegex(domains);
+			const searchValue = searchBar.value.trim();
+			if (vercelCheck !== 'true') {
+				if (domainRegex.test(searchValue)) {
+					scope = '/assignments/';
+				} else {
+					scope = '/service/';
+				}
+			} else {
+				scope = '/assignments/';
+				// serverless = no websocket support
+			}
+			if (/^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/.test(inputUrl)) {
+				document.getElementById('siteurl').src = scope + Ultraviolet.codec.xor.encode(inputUrl);
+			} else {
+				document.getElementById('siteurl').src = scope + Ultraviolet.codec.xor.encode(inputUrl.includes('.') ? 'https://' + inputUrl : 'https://www.google.com/search?q=' + encodeURIComponent(inputUrl));
+			}
+		});
+	}
+});
+setTimeout(function() {
+	var searchBarValue = document.getElementById('searchBar').value;
+	if (searchBarValue.startsWith('https://')) {
+		localStorage.setItem('encodedUrl', Ultraviolet.codec.xor.encode(searchBarValue));
+	} else {
+		// Blank URL, not saving
+	}
+}, 60000);
+// Save URL every 60 seconds
+function forward() {
+	frame.contentWindow.history.go(1);
 }
 
-function updateIframeUrl() {
-    var inputUrl = document.querySelector("#urlInput").value.trim();
-    var iframe = document.querySelector("#siteurl");
-    if (/^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/.test(inputUrl)) {
-        iframe.src = '/service/' + Ultraviolet.codec.xor.encode(inputUrl);
-    } else {
-        iframe.src = '/service/' + Ultraviolet.codec.xor.encode(inputUrl.includes('.') ? 'https://' + inputUrl : 'https://www.google.com/search?q=' + encodeURIComponent(inputUrl));
-    }
+function back() {
+	frame.contentWindow.history.go(-1);
+	setTimeout(() => {
+		const currentSrc = frame.contentWindow.location.pathname;
+		if (currentSrc === '/loading.html') {
+			forward();
+		}
+	}, 500);
 }
 
-function handleEnterKeyPress(event) {
-    if (event.key === "Enter") {
-        updateIframeUrl();
-    }
+function reload() {
+  frame.contentWindow.location.reload();
 }
-
-function getUrlDecodedPart(url) {
-    const decodedPart = url.split("/service/")[1];
-    return decodedPart ? Ultraviolet.codec.xor.decode(decodedPart.replace(/\?/g, '=')) : null;
-}
-
-function isSearchQuery(val = "") {
-    return (!/\./.test(val) && !val.startsWith("http://") && !val.startsWith("https://")) ||
-        /^\S+$/.test(val);
-}
-
-var devToolsLoaded = false;
 
 function devTools() {
   var siteIframe = document.getElementById('siteurl');
   if (siteIframe) {
     var innerDoc = siteIframe.contentDocument || siteIframe.contentWindow.document;
     var eruda = innerDoc.getElementById('eruda');
-
     if (!devToolsLoaded) {
       if (!eruda) {
         var erudaScript = document.createElement('script');
@@ -91,78 +134,192 @@ function devTools() {
           initScript.innerHTML = "eruda.init();eruda.show();";
           innerDoc.head.appendChild(initScript);
         };
-
         innerDoc.head.appendChild(erudaScript);
       }
-    } else {
+    }
+    else {
       if (eruda) {
         eruda.remove();
       }
     }
     devToolsLoaded = !devToolsLoaded;
-  } else {
-    console.error('Failed to load DevTools!');
   }
 }
 
-
-
-/* url bar functions */
 function openWindow() {
-    function openTabWithIframe(url) {
-        const newTab = window.open('about:blank', '_blank');
-        if (newTab) {
-            const iframe = document.createElement('iframe');
-            iframe.id = 'siteurl';
-            iframe.src = url;
-            iframe.style.position = 'fixed';
-            iframe.style.inset = '0px';
-            iframe.style.outline = 'none';
-            iframe.style.border = 'none';
-            iframe.style.height = '100%';
-            iframe.style.width = '100%';
-            iframe.style.overflow = 'hidden';
-            newTab.document.body.appendChild(iframe);
-        } else {
-            console.error('Failed to open a new tab.');
-        }
-    }
-    const abFrame = document.getElementById('siteurl');
-    const currentSrc = abFrame.contentWindow.location.href;
-    const targetUrl = currentSrc;
-    openTabWithIframe(targetUrl);
-    location.href = 'https://google.com';
-}
-
-var iframe = siteUrl;
-
-function toggleFs() {
-    if (!document.fullscreenElement) {
-        iframe.requestFullscreen().catch(err => {
-            console.error(`Error attempting to enable full-screen mode: ${err.message}`);
-        });
-    } else {
-        document.exitFullscreen();
-    }
-}
-
-function hideBar() {
-    urlBar.style.display = 'none';
-    siteUrl.style.height = '100vh';
-}
-
-function reload() {
-    iframe.contentWindow.location.reload();
-}
-
-function forward() {
-    iframe.contentWindow.history.go(1);
-}
-
-function back() {
-    iframe.contentWindow.history.go(-1);
+  var win = window.open();
+  win.document.body.style.margin = "0";
+  win.document.body.style.height = "100vh";
+  var iframe = win.document.createElement("iframe");
+  iframe.style.border = "none";
+  iframe.style.width = "100%";
+  iframe.style.height = "100%";
+  iframe.style.margin = "0";
+  iframe.src = 'https://' + window.location.hostname + scope + Ultraviolet.codec.xor.encode(document.getElementById('searchBar').value);
+  win.document.body.appendChild(iframe);
 }
 
 function exit() {
-    location.href = '/';
+  location.href = '/'
 }
+
+function hideBar() {
+  var elements = ["menu", "sideBar", "urlBar"];
+  elements.forEach(elementId => {
+    var element = document.getElementById(elementId);
+    if (element) {
+      element.style.display = 'none';
+      var allFrames = document.querySelectorAll('iframe');
+      allFrames.forEach(iframe => {
+        iframe.style.height = 'calc(100vh)';
+      });
+    }
+  });
+}
+
+function decode(url) {
+  if (url === 'about:blank' || url === 'welcome.html') {
+    return '';
+  }
+  else if (url === 'welcome.html' || url === 'https://' + location.hostname + '/welcome.html') {
+    return '';
+  }
+
+  var prefixes = ['/service/', '/assignments/'];
+  let decodedPart = null;
+
+  for (let prefix of prefixes) {
+    const uvIndex = url.indexOf(prefix);
+    if (uvIndex !== -1) {
+      const encodedPart = url.substring(uvIndex + prefix.length);
+      try {
+        decodedPart = Ultraviolet.codec.xor.decode(encodedPart);
+        break; // Exit the loop once we find a valid prefix
+      } catch (error) {
+        console.error('Error decoding the URL part:', error);
+        return null;
+      }
+    }
+  }
+  return decodedPart;
+}
+
+
+function updateSearch() {
+  var url = decode(document.getElementById('siteurl').src);
+  document.querySelector('.searchBar').value = url;
+}
+
+function startInterval() {
+  let intervalId;
+
+  function startLoop() {
+    intervalId = setInterval(() => {
+      searchBar.value = decode(document.getElementById("siteurl").contentWindow.location.href);
+    }, 1000);
+  }
+
+  function stopLoop() {
+    clearInterval(intervalId);
+  }
+  searchBar.addEventListener('focus', stopLoop);
+  searchBar.addEventListener('blur', startLoop);
+  startLoop();
+}
+
+function onFrameClick() {
+  if (document.getElementById('siteurl').contentWindow) {
+    document.getElementById('siteurl').contentWindow.addEventListener('click', frameClicked);
+    document.getElementById('siteurl').contentWindow.addEventListener('touchend', frameClicked);
+  }
+}
+
+function frameClicked() {
+  sideBar.style.display = 'none';
+  menu.style.display = 'none';
+}
+
+function home() {
+  location.href = '/';
+}
+
+function toggleFs() {
+  if (!document.fullscreenElement) {
+    document.getElementById('siteurl').requestFullscreen();
+    menu.style.display = 'none';
+  }
+}
+
+function handleOpen(url) {
+  const newWindow = window.open('about:blank', '_blank');
+  if (newWindow) {
+    newWindow.document.open();
+    newWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Genesis Quick Login</title>
+        <link rel="icon" href="https://www.genesisedu.com/wp-content/uploads/2020/10/favicon.jpg" />
+        <style>
+          body { margin: 0; height: 100vh; }
+          iframe { border: none; width: 100%; height: 100%; margin: 0; }
+        </style>
+      </head>
+      <body>
+        <iframe src="${'https://' + window.location.hostname + '/assignments/' + Ultraviolet.codec.xor.encode(url)}" sandbox="allow-same-origin allow-scripts allow-forms allow-pointer-lock allow-modals allow-orientation-lock" frameborder="0"></iframe>
+      </body>
+      </html>
+    `);
+    newWindow.document.close();
+  } else {
+    console.error('Failed to open Genesis Quick Login!');
+  }
+
+  return null;
+}
+
+function getWindow() {
+  let currentWindow = window;
+  while (currentWindow.parent && currentWindow !== currentWindow.parent) {
+    currentWindow = currentWindow.parent;
+    if (typeof currentWindow.handleOpen === 'function') {
+      return currentWindow;
+    }
+  } // Derpman -  I did this because on about:blank the intercepting doesn't work, so this searches for the correct window
+  return window;
+}
+
+function interceptFrame() {
+  if (frame.contentWindow) {
+    frame.contentWindow.open = function(url, target) {
+      handleOpen(url);
+      return null;
+    };
+
+    frame.contentWindow.document.addEventListener('click', event => {
+      const target = event.target;
+      if (target.tagName === 'A') {
+        const targetAttr = target.getAttribute('target');
+        if (targetAttr === '_top' || targetAttr === '_blank') {
+          event.preventDefault();
+          const href = target.getAttribute('href');
+          if (href) {
+            const correctWindow = getWindow();
+            correctWindow.handleOpen(href);
+          }
+        }
+      }
+    });
+
+    frame.contentWindow.addEventListener('submit', event => {
+      event.preventDefault();
+    });
+  }
+}
+
+frame.addEventListener('load', interceptFrame);
+
+document.addEventListener('DOMContentLoaded', function() {
+  onFrameClick();
+  setInterval(onFrameClick, 1000);
+});

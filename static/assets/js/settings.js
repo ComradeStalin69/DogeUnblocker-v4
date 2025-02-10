@@ -19,27 +19,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
     container.classList.add('loaded');
 }
-  
 
-// Function to handle button clicks and toggle between functions
- /*document.getElementById('cloak').addEventListener('click', function () {
-    // Check which function to call and then toggle
-    if (this.getAttribute('data-current-function') === 'tabCloak') {
-        disableTabCloak();
-        this.setAttribute('data-current-function', 'disableTC');
-    } else {
-        tabCloak();
-        this.setAttribute('data-current-function', 'tabCloak');
-    }
-});*/
 // FOR PARTICLES, DISABLING PARTICLES IS ENABLING. THE BUTTONS ARE OPPISITE.
 var particlesEnabledButton = document.getElementById('enabledParticles');
 var particlesDisabledButton = document.getElementById('disabledParticles');
 
-// Get the value from localStorage
 var particless = localStorage.getItem('particles');
 
-// Set the initial disabled states based on localStorage
 if (particless === 'disabled' || particless === '' || particless === null) {
     particlesDisabledButton.disabled = true;
     particlesEnabledButton.disabled = false;
@@ -48,7 +34,7 @@ if (particless === 'disabled' || particless === '' || particless === null) {
     particlesEnabledButton.disabled = true;
 }
 
-// custom backgrund
+// custom bg
 
 function showBackgroundPopup() {
     document.getElementById("backgroundPopup").style.display = "block";
@@ -205,4 +191,17 @@ if (clickoffButtonCheck === 'disabled' || clickoffButtonCheck === '' || clickoff
 } else {
     disableccButton.disabled = false;
     enableccButton.disabled = true;
+}
+
+// On Theme change
+const dropdown = document.getElementById('dropdown');
+dropdown.addEventListener('change', function () {
+    const selectedOptionValue = dropdown.value;     
+    localStorage.setItem('selectedOption', selectedOptionValue);
+    live();particles();
+    console.log('[✔️] Theme Updated');
+});
+const storedOptionValue = localStorage.getItem('selectedOption');
+if (storedOptionValue) {
+    dropdown.value = storedOptionValue;
 }
